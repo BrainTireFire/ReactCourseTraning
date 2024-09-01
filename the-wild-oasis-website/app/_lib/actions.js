@@ -1,8 +1,27 @@
 "use server";
 
 import { auth, signIn, signOut } from "@/app/_lib/auth";
-import { updateGuest } from "./data-service";
+import { deleteBooking, getBookings, updateGuest } from "./data-service";
 import { revalidatePath } from "next/cache";
+
+export async function deleteReservationAction(bookingId) {
+  const session = await auth();
+
+  if (!session) {
+    throw new Error("You must be logged in");
+  }
+
+  const guestBookings = await getBookings(session.user.guestId);
+  const guestBookingsIds = guestBookings.map((booking) => booking.id);
+
+  if (!guestBookingsIds.includes(bookingId)) {
+    throw new Error("You are not authorized to delete this reservation");
+  }
+
+  await deleteBooking(bookingId);
+
+  revalidatePath("/account/reservations");
+}
 
 export async function updateGuestAction(formData) {
   const session = await auth();
