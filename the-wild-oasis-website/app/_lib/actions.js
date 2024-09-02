@@ -1,8 +1,14 @@
 "use server";
 
 import { auth, signIn, signOut } from "@/app/_lib/auth";
-import { deleteBooking, getBookings, updateGuest } from "./data-service";
+import {
+  deleteBooking,
+  getBookings,
+  updateBooking,
+  updateGuest,
+} from "./data-service";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
 export async function deleteReservationAction(bookingId) {
   const session = await auth();
@@ -21,6 +27,35 @@ export async function deleteReservationAction(bookingId) {
   await deleteBooking(bookingId);
 
   revalidatePath("/account/reservations");
+}
+
+export async function updateBookingAction(formData) {
+  const session = await auth();
+
+  if (!session) {
+    throw new Error("You must be logged in");
+  }
+
+  const guestBookings = await getBookings(session.user.guestId);
+  const guestBookingsIds = guestBookings.map((booking) => booking.id);
+  const bookingId = Number(formData.get("bookingId"));
+
+  if (!guestBookingsIds.includes(bookingId)) {
+    throw new Error("You are not authorized to delete this reservation");
+  }
+
+  const updateData = {
+    numGuests: Number(formData.get("numGuests")),
+    observations: formData.get("observations").slice(0, 1000),
+  };
+
+  await updateBooking(bookingId, updateData);
+
+  // Revalidate should come before redirect!!!
+  revalidatePath(`/account/reservations/edit/${bookingId}`);
+
+  // Redirect to the reservations page
+  redirect("/account/reservations");
 }
 
 export async function updateGuestAction(formData) {
