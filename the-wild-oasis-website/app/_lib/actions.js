@@ -2,6 +2,7 @@
 
 import { auth, signIn, signOut } from "@/app/_lib/auth";
 import {
+  createBooking,
   deleteBooking,
   getBookings,
   updateBooking,
@@ -10,7 +11,7 @@ import {
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-export async function deleteReservationAction(bookingId) {
+export async function deleteBookingAction(bookingId) {
   const session = await auth();
 
   if (!session) {
@@ -27,6 +28,36 @@ export async function deleteReservationAction(bookingId) {
   await deleteBooking(bookingId);
 
   revalidatePath("/account/reservations");
+}
+
+export async function createBookingAction(bookingData, formData) {
+  const session = await auth();
+
+  if (!session) {
+    throw new Error("You must be logged in");
+  }
+
+  // If you want to see the form data or have got big data
+  // Object.entries(formData.entries());
+
+  const newBooking = {
+    ...bookingData,
+    guestId: session.user.guestId,
+    numGuests: Number(formData.get("numGuests")),
+    observations: formData.get("observations").slice(0, 1000),
+    extrasPrice: 0,
+    totalPrice: bookingData.cabinPrice,
+    isPaid: false,
+    hasBreakfast: false,
+    status: "unconfirmed",
+  };
+
+  await createBooking(newBooking);
+
+  revalidatePath(`/cabins/${bookingData.cabinId}`);
+
+  // Redirect to the reservations page
+  redirect("/cabins/thankyou");
 }
 
 export async function updateBookingAction(formData) {
