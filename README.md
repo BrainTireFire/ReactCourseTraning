@@ -4,4 +4,4 @@
 Full react course with projects from udemy and also with nextjs with project
 
 ## list of technologies
-react, nextjs, supabase
+React, Nextjs, Supabase and MOREEE
